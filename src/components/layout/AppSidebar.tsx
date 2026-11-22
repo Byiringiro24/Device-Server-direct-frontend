@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
 import { useCurrentUser, getInitials, formatRole } from "@/hooks/useCurrentUser";
-import { clearSchoolAuth, isDirectorOfStudiesRole } from "@/lib/schoolAuth";
+import { clearSchoolAuth } from "@/lib/schoolAuth";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
 
 function handleLogout() {
@@ -81,7 +81,8 @@ export function AppSidebar({ open, onClose }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const currentUser = useCurrentUser();
-  const isDos = isDirectorOfStudiesRole(currentUser?.role);
+  const activeRole = currentUser?.role?.trim().toLowerCase();
+  const isDos = activeRole === "director_of_studies" || activeRole === "dos";
   const visibleSections = isDos ? DOS_SECTIONS : SECTIONS;
 
   const toggle = (id: string) => setCollapsed(p => ({ ...p, [id]: !p[id] }));
@@ -110,6 +111,7 @@ export function AppSidebar({ open, onClose }: Props) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
+          <div className="px-1 md:hidden"><RoleSwitcher /></div>
           {visibleSections.map((sec) => {
             const items = sec.items.filter(it => {
               // Role-specific items (e.g. Support Tickets only for school_admin)

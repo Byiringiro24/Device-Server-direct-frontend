@@ -12,13 +12,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { apiRequest } from "@/lib/api";
 import { patronApi } from "@/lib/boardingApi";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { getSchoolAuth } from "@/lib/schoolAuth";
+import { getActiveRole, getSchoolAuth } from "@/lib/schoolAuth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/staff/management")({
   beforeLoad: () => {
     const auth = getSchoolAuth();
-    const role = auth?.user?.role?.toLowerCase();
+    const role = getActiveRole()?.toLowerCase();
     if (
       auth?.accessToken &&
       (role === "school_admin" || role === "director_of_discipline" || role === "director_of_studies")

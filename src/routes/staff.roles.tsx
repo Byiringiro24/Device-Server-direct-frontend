@@ -4,13 +4,13 @@ import { ArrowLeft, Check, Loader2, RefreshCw, ShieldCheck, UserPlus, Users, X }
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { apiRequest } from "@/lib/api";
-import { getSchoolAuth } from "@/lib/schoolAuth";
+import { getActiveRole, getSchoolAuth } from "@/lib/schoolAuth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/staff/roles")({
   beforeLoad: () => {
     const auth = getSchoolAuth();
-    const role = auth?.user?.role?.toLowerCase();
+    const role = getActiveRole()?.toLowerCase();
     if (
       auth?.accessToken &&
       ["school_admin", "director_of_discipline", "director_of_studies"].includes(role ?? "")
@@ -50,7 +50,7 @@ const roleColor = (slug: string) => {
 };
 
 function StaffRoleManagementPage() {
-  const currentRole = getSchoolAuth()?.user?.role?.toLowerCase();
+  const currentRole = getActiveRole()?.toLowerCase();
   const canAssign = currentRole === "school_admin" || currentRole === "director_of_discipline";
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);

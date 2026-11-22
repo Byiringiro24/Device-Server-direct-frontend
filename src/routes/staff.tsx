@@ -1,12 +1,12 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { getSchoolAuth } from "@/lib/schoolAuth";
+import { getActiveRole, getSchoolAuth } from "@/lib/schoolAuth";
 import { redirect } from "@tanstack/react-router";
 
 /** Layout: school HR at /staff/ (index) + staff management at /staff/management */
 export const Route = createFileRoute("/staff")({
   beforeLoad: () => {
     const auth = getSchoolAuth();
-    const role = auth?.user?.role?.toLowerCase();
+    const role = getActiveRole()?.toLowerCase();
     // Staff role → /staff/ HR pages
     // school_admin, DOD, DOS → /staff/management only (they have their own beforeLoad there)
     const allowed = ["staff", "school_admin", "director_of_discipline", "director_of_studies"];
