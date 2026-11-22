@@ -25,7 +25,7 @@ export type DeviceRecord = {
  *
  * Priority:
  *  1. `is_online` field set by the backend heartbeat job / status check endpoint
- *  2. `is_connected` field (from DB — reset to false by heartbeat when tablet unreachable)
+ *  2. `is_connected` field (from the direct WAN registry)
  *  3. `last_seen_at` within the last 10 minutes (matches backend grace window)
  *  4. Fall back to offline
  *
@@ -34,7 +34,7 @@ export type DeviceRecord = {
  */
 export function isDeviceOnline(device: DeviceRecord): boolean {
   // Explicit real-time fields — backend heartbeat sets is_connected=false
-  // when the tablet is unreachable so this is authoritative
+  // when the terminal misses its WAN poll
   if (device.is_online === true) return true;
   if (device.is_online === false) return false;
   if (device.is_connected === true) return true;
@@ -98,7 +98,7 @@ export function DeviceStatusCards({ devices }: { devices: DeviceRecord[] }) {
         label="Offline Devices"
         value={offlineDevices.length}
         icon={<WifiOff className="h-5 w-5" />}
-        trend={offlineDevices.length > 0 ? "Check bridge connectivity" : "All devices reachable"}
+        trend={offlineDevices.length > 0 ? "Check the device WAN connection" : "All devices reachable"}
         tone={offlineDevices.length > 0 ? "destructive" : "primary"}
       />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm min-w-0">

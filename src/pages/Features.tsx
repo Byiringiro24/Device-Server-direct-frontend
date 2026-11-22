@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import featuresBg from "@/assets/features.jpg";
 
 const items = [
-  { icon: Fingerprint, title: "Biometric Attendance", desc: "Tablet-based biometric capture with kiosk mode, PIN unlock, and automatic offline sync." },
+  { icon: Fingerprint, title: "Biometric Attendance", desc: "Biometric attendance from terminals that connect directly to the server." },
   { icon: DoorOpen, title: "Gate Attendance", desc: "Entry and exit logs, time tracking, and duplicate prevention." },
   { icon: ClipboardCheck, title: "Boarding Attendance", desc: "Morning and evening attendance with automated absence monitoring." },
   { icon: Calendar, title: "Leave Management", desc: "Requests, approvals, exit tracking, and unauthorized exit alerts." },

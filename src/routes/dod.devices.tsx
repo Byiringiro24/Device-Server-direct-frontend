@@ -1,11 +1,11 @@
 /**
  * DOD — Device Location Assignment
  *
- * DOD sees all tablets/devices assigned to their school.
+ * DOD sees direct FK devices assigned to their school.
  * For each device they can:
  *   1. Assign it to a location (gate, dormitory, dining hall, classroom)
  *   2. See which students will be pushed to it (auto-grouped in 2000 max)
- *   3. Push a specific group to the tablet
+ *   3. Push a specific group to the direct FK device
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -63,7 +63,6 @@ type DeviceRow = {
   last_sync_status?: string | null;
   last_status_message?: string | null;
   dormitory?: { id: string; name: string } | null;
-  tablet?: { id: string; name: string; ip: string } | null;
 };
 
 type Dormitory = { id: string; name: string; block_name?: string | null; gender: string };
@@ -177,7 +176,7 @@ function DodDevicesPage() {
       await deviceLocationApi.pushGroup(deviceId, group);
       toast.success(`Group ${group} pushed to device`);
     } catch (e: any) {
-      toast.error(e?.message ?? "Push failed — check tablet connection");
+      toast.error(e?.message ?? "Push failed — check the device WAN connection");
     } finally { setPushing(null); }
   };
 
@@ -195,7 +194,7 @@ function DodDevicesPage() {
   };
 
   return (
-    <DodLayout title="Device Location Assignment" subtitle="Assign tablets to gates, dormitories, dining halls and classrooms — students are auto-grouped and pushed">
+    <DodLayout title="Device Location Assignment" subtitle="Assign direct devices to gates, dormitories, dining halls and classrooms — students are auto-grouped and pushed">
 
       <div className="mb-5 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{devices.length} device{devices.length !== 1 ? "s" : ""} — max {DEVICE_CAPACITY} students per device</p>
@@ -210,7 +209,7 @@ function DodDevicesPage() {
       ) : devices.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-16 text-center">
           <Cpu className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
-          <p className="text-sm text-muted-foreground">No devices assigned. Contact Super Admin to assign tablets to your school.</p>
+          <p className="text-sm text-muted-foreground">No direct devices assigned. Contact Super Admin to assign a device to your school.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -248,7 +247,7 @@ function DodDevicesPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {d.tablet ? `Tablet: ${d.tablet.name} (${d.tablet.ip})` : "No tablet linked"}
+                      Direct FK device: {d.device_uid}
                       {d.dormitory ? ` · Dorm: ${d.dormitory.name}` : ""}
                     </p>
                     {d.last_status_message && (
@@ -304,7 +303,7 @@ function DodDevicesPage() {
                       </div>
                     </div>
                     <div className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
-                      After saving, students for this location are automatically pushed to the linked tablet (Group 1, max {DEVICE_CAPACITY}).
+                      After saving, students for this location are automatically pushed to the assigned direct FK device (Group 1, max {DEVICE_CAPACITY}).
                       For more than {DEVICE_CAPACITY} students, use multiple devices and push different groups.
                     </div>
                     <div className="flex gap-3">
@@ -406,7 +405,7 @@ function DodDevicesPage() {
                                     Boarding: {g.students.filter(s => s.student_type === "boarding").length}
                                   </p>
                                 </div>
-                                {d.tablet && (
+                                {d.is_connected && (
                                   <button onClick={() => void handlePushGroup(d.id, g.group)}
                                     disabled={!!pushing}
                                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">

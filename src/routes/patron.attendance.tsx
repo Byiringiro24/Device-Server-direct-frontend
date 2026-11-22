@@ -70,7 +70,6 @@ type MyDevice = {
   id: string; name: string; device_uid: string; is_connected: boolean;
   dormitory_id?: string | null;
   dormitory?: { id: string; name: string } | null;
-  tablet?: { id: string; name: string } | null;
 };
 
 export function PatronAttendancePage() {

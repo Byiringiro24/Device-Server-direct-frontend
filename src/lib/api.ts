@@ -110,7 +110,7 @@ export async function apiRequest<T>(
 
     // Refresh failed — clear stored auth and send user to login
     // IMPORTANT: Only force-navigate if the document is visible (user is active).
-    // Background polling (VPN status, device heartbeat) can get 401s when the
+    // Background polling (device heartbeat) can get 401s when the
     // token expires while the tab is open — we must NOT redirect in those cases
     // as it logs the user out mid-work. Instead just throw so the caller can
     // show a toast or silently fail.

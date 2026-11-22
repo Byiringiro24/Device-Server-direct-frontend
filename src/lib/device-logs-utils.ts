@@ -3,7 +3,7 @@
  * Data normalization and helper functions
  */
 
-import type { BiometricMethod, Direction, SyncState, TabletStatus } from './device-logs-types';
+import type { BiometricMethod, Direction, SyncState } from './device-logs-types';
 
 // Method mappings (scan_method field)
 const METHOD_MAP: Record<string, BiometricMethod> = {
@@ -61,9 +61,9 @@ export function determineSyncState(syncedAt?: string): SyncState {
 }
 
 /**
- * Get status color based on tablet status
+ * Get status color based on device status
  */
-export function getStatusColor(status: TabletStatus): string {
+export function getStatusColor(status: "online" | "offline" | "error" | "maintenance"): string {
   switch (status) {
     case 'online':
       return 'bg-green-500';
@@ -81,7 +81,7 @@ export function getStatusColor(status: TabletStatus): string {
 /**
  * Get status text color
  */
-export function getStatusTextColor(status: TabletStatus): string {
+export function getStatusTextColor(status: "online" | "offline" | "error" | "maintenance"): string {
   switch (status) {
     case 'online':
       return 'text-green-700';

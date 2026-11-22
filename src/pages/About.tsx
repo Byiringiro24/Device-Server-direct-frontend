@@ -65,7 +65,7 @@ export default function About() {
                 Education Care System Africa is a modern scalable SaaS-based school management platform designed to support schools through digital transformation, operational automation, attendance management, fee management, reporting, and centralized educational operations.
               </p>
               <p className="text-black/80 text-xs md:text-sm leading-relaxed font-medium">
-                By providing robust controls, role-based permission sets, and cross-device functionality (from administrative desktops to mobile tablets at school gates), we bridge the gap between parents, teachers, and system administrators.
+                By providing robust controls, role-based permission sets, and cross-device functionality (from administrative desktops to biometric terminals at school gates), we connect parents, teachers, and system administrators.
               </p>
             </motion.div>
             

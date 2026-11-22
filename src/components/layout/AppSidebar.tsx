@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, ScanLine, Users, BookOpen, ClipboardCheck,
@@ -37,7 +37,7 @@ const SECTIONS: Section[] = [
     { to: "/boarding/attendance",label: "Dormitory Attendance",  icon: ClipboardCheck, module: "boarding" },
     { to: "/leaves",             label: "Leaves",                icon: FileText,       module: "leaves"   },
   ]},
-  { id: "devices", label: "Tablets & Devices", items: [
+  { id: "devices", label: "Direct Devices", items: [
     { to: "/devices",                  label: "Device Management",   icon: Cpu,            module: "boarding" },
     { to: "/boarding/device-sessions", label: "Attendance Sessions", icon: Clock3,         module: "boarding" },
     { to: "/boarding/device-students", label: "Device Students",     icon: UserPlus,       module: "boarding" },

@@ -21,7 +21,6 @@ type Device = {
   lastSync: string;
   lastSyncStatus?: string | null;
   lastStatusMessage?: string | null;
-  tabletId?: string | null;
   deviceUsersCount?: number;
   deviceLogsCount?: number;
   isConnected?: boolean;
@@ -136,7 +135,6 @@ function DeviceStudentsPage() {
           lastSync: device.last_sync_at ? new Date(device.last_sync_at).toLocaleString() : "No sync yet",
           lastSyncStatus: device.last_sync_status ?? null,
           lastStatusMessage: device.last_status_message ?? null,
-          tabletId: device.tablet_id ?? null,
           deviceUsersCount: Number(device.device_users_count ?? 0),
           deviceLogsCount: Number(device.device_logs_count ?? 0),
           isConnected: Boolean(device.is_connected || device.status === "online"),
@@ -190,7 +188,7 @@ function DeviceStudentsPage() {
           deviceId: status?.deviceId ?? result?.device_uid,
           serialNumber: status?.serialNumber,
           productName: status?.productName ?? result?.product_name,
-          ipAddress: status?.ipAddress ?? result?.tablet_ip,
+          ipAddress: status?.ipAddress,
           last_sync_at: result?.last_sync_at ?? result?.lastSyncAt ?? status?.last_sync_at ?? null,
           last_sync_status: result?.last_sync_status ?? status?.last_sync_status ?? null,
         });
@@ -315,7 +313,6 @@ function DeviceStudentsPage() {
         lastSync: device.last_sync_at ? new Date(device.last_sync_at).toLocaleString() : "No sync yet",
         lastSyncStatus: device.last_sync_status ?? null,
         lastStatusMessage: device.last_status_message ?? null,
-        tabletId: device.tablet_id ?? null,
         deviceUsersCount: Number(device.device_users_count ?? 0),
         deviceLogsCount: Number(device.device_logs_count ?? 0),
         isConnected: Boolean(device.is_connected || device.status === "online"),
@@ -363,7 +360,7 @@ function DeviceStudentsPage() {
       deviceId: status?.deviceId ?? result?.device_uid,
       serialNumber: status?.serialNumber,
       productName: status?.productName ?? result?.product_name,
-      ipAddress: status?.ipAddress ?? result?.tablet_ip,
+      ipAddress: status?.ipAddress,
       last_sync_at: result?.last_sync_at ?? result?.lastSyncAt ?? status?.last_sync_at ?? null,
       last_sync_status: result?.last_sync_status ?? status?.last_sync_status ?? null,
     });

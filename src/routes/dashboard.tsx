@@ -289,8 +289,6 @@ function DashboardPage() {
           apiRequest<DeviceRecord[]>("/devices?limit=500&sort=created_at&order=desc", {
             auth: "school"
           }).catch(() => []),
-          // LIVE device status — real HTTP ping to each tablet bridge via WireGuard
-          // Returns actual FK623 + WireGuard state, NOT DB cache
           deviceApi.getLiveStatuses().catch(() => null),
         ]);
 
@@ -484,7 +482,6 @@ function DashboardPage() {
       if (refreshingRef.current || !mountedRef.current) return;
       refreshingRef.current = true;
       try {
-        // LIVE device status — real HTTP ping to each tablet bridge
         const [liveStatuses, gateStats, todayDeviceLogs] = await Promise.all([
           deviceApi.getLiveStatuses().catch(() => null),
           apiRequest<{ gatePresent?: number }>("/attendance/records/device-logs/stats", {

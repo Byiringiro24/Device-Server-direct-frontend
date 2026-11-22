@@ -9,7 +9,7 @@ import {
 import herosection from "@/assets/herosectionschol.jpg";
 
 const features = [
-  { icon: Fingerprint, title: "Biometric Attendance", desc: "Tablet-based gate and boarding attendance with offline sync." },
+  { icon: Fingerprint, title: "Biometric Attendance", desc: "Attendance from biometric terminals connected directly to the server." },
   { icon: Users, title: "Student Management", desc: "Registration, classes, sections, and full academic records." },
   { icon: CreditCard, title: "Fee & Payments", desc: "Track fees, receipts, transactions, and subscriptions." },
   { icon: BookOpen, title: "Exams & Results", desc: "Configurable grading systems and instant result publishing." },

@@ -48,14 +48,11 @@ type AttendanceStats = {
   checkOutCount: number;
 };
 
-type Tablet = {
+type DirectDevice = {
   id: string;
   name: string;
   status: string;
   lastHealthCheck?: string | null;
-  location?: string | null;
-  ip?: string | null;
-  port?: number | null;
 };
 
 type StudentOnCampus = {
@@ -95,7 +92,7 @@ function GatePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
-  const [tablets, setTablets] = useState<Tablet[]>([]);
+  const [devices, setDevices] = useState<DirectDevice[]>([]);
   const [studentsOnCampus, setStudentsOnCampus] = useState<StudentOnCampus[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -153,13 +150,11 @@ function GatePage() {
     } catch { /* silent */ }
   }, [date]);
 
-  const fetchTablets = useCallback(async () => {
+  const fetchDirectDevices = useCallback(async () => {
     try {
-      const res = await apiRequest<{ data: Tablet[] }>(
-        "/tablets/device-logs/list?is_active=true",
-        { auth: "school" }
-      );
-      setTablets((res as any)?.data ?? []);
+      const result = await apiRequest<any[]>("/devices/live-status", { auth: "school" });
+      const direct = Array.isArray(result) ? result : [];
+      setDevices(direct.map(item => ({ ...item, status: item.is_online ? "online" : "offline", lastHealthCheck: item.last_seen_at ?? null })));
     } catch { /* silent */ }
   }, []);
 
@@ -191,7 +186,7 @@ function GatePage() {
   // -- Effects ---------------------------------------------------------------
 
   useEffect(() => {
-    void Promise.all([fetchLogs(), fetchStats(), fetchTablets(), fetchStudentsOnCampus()]);
+    void Promise.all([fetchLogs(), fetchStats(), fetchDirectDevices(), fetchStudentsOnCampus()]);
   }, [date, page, histDir, histSearch, histMethod]);
 
   // Live monitor: fetch today logs on tab switch, then socket keeps it live
@@ -239,27 +234,19 @@ function GatePage() {
     if (syncing) return;
     setSyncing(true);
     try {
-      const res = await apiRequest<{ totalSaved: number; summary: string }>(
-        "/tablets/pull-all-logs",
-        { method: "POST", auth: "school" }
-      );
-      const saved = (res as any)?.totalSaved ?? 0;
-      setSyncSaved(saved);
+      await Promise.all([fetchLogs(true), fetchStats(), fetchStudentsOnCampus(), fetchDirectDevices()]);
       setLastSync(new Date());
-      toast.success(`Synced � ${saved} new logs pulled`);
-      await Promise.all([fetchLogs(true), fetchStats(), fetchStudentsOnCampus()]);
+      toast.success("Attendance and direct-device status refreshed");
       if (tab === "Live Monitor") await fetchLiveLogs();
     } catch (e: any) {
-      toast.error(e?.message ?? "Sync failed");
-    } finally {
-      setSyncing(false);
-    }
+      toast.error(e?.message ?? "Refresh failed");
+    } finally { setSyncing(false); }
   };
 
   // -- Computed --------------------------------------------------------------
 
-  const onlinePct = tablets.length
-    ? Math.round((tablets.filter(t => t.status === "online").length / tablets.length) * 100)
+  const onlinePct = devices.length
+    ? Math.round((devices.filter(t => t.status === "online").length / devices.length) * 100)
     : 0;
 
   const filteredLive = liveLogs.filter(l => {
@@ -298,7 +285,7 @@ function GatePage() {
         />
         <button
           type="button"
-          onClick={() => void Promise.all([fetchLogs(), fetchStats(), fetchTablets(), fetchStudentsOnCampus()])}
+          onClick={() => void Promise.all([fetchLogs(), fetchStats(), fetchDirectDevices(), fetchStudentsOnCampus()])}
           disabled={loading}
           className="h-10 inline-flex items-center gap-2 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted disabled:opacity-50"
         >
@@ -335,10 +322,10 @@ function GatePage() {
         ))}
       </div>
 
-      {tab === "Overview"     && <OverviewTab stats={stats} logs={logs} tablets={tablets} loading={loading} studentsOnCampus={studentsOnCampus} date={date} onSyncNow={handleSyncNow} syncing={syncing} />}
+      {tab === "Overview"     && <OverviewTab stats={stats} logs={logs} devices={devices} loading={loading} studentsOnCampus={studentsOnCampus} date={date} onSyncNow={handleSyncNow} syncing={syncing} />}
       {tab === "Live Monitor" && <LiveMonitorTab logs={filteredLive} loading={liveLoading} search={liveSearch} onSearch={setLiveSearch} dirFilter={liveDirFilter} onDirFilter={setLiveDirFilter} onRefresh={fetchLiveLogs} />}
       {tab === "Students"     && <StudentsTab studentsOnCampus={studentsOnCampus} logs={logs} loading={loading} />}
-      {tab === "Devices"      && <DevicesTab tablets={tablets} onRefresh={fetchTablets} />}
+      {tab === "Devices"      && <DevicesTab devices={devices} onRefresh={fetchDirectDevices} />}
       {tab === "Reports"      && <ReportsTab logs={logs} stats={stats} hourDist={hourDist} methods={uniqueMethods} date={date} />}
 
     </AppLayout>
@@ -348,17 +335,17 @@ function GatePage() {
 
 // --- Overview Tab -------------------------------------------------------------
 
-function OverviewTab({ stats, logs, tablets, loading, studentsOnCampus, date, onSyncNow, syncing }: {
+function OverviewTab({ stats, logs, devices, loading, studentsOnCampus, date, onSyncNow, syncing }: {
   stats: AttendanceStats | null;
   logs: AttendanceLog[];
-  tablets: Tablet[];
+  devices: Device[];
   loading: boolean;
   studentsOnCampus: StudentOnCampus[];
   date: string;
   onSyncNow: () => void;
   syncing: boolean;
 }) {
-  const online = tablets.filter(t => t.status === "online").length;
+  const online = devices.filter(t => t.status === "online").length;
   const entries = logs.filter(l => l.direction === "In").length;
   const exits   = logs.filter(l => l.direction === "Out").length;
   const flagged = logs.filter(l => l.flagged).length;
@@ -431,7 +418,7 @@ function OverviewTab({ stats, logs, tablets, loading, studentsOnCampus, date, on
 
       {/* Device health summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {tablets.slice(0, 6).map(t => (
+        {devices.slice(0, 6).map(t => (
           <div key={t.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">{t.name}</div>
@@ -445,7 +432,7 @@ function OverviewTab({ stats, logs, tablets, loading, studentsOnCampus, date, on
             </span>
           </div>
         ))}
-        {tablets.length === 0 && <div className="rounded-xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground col-span-3">No devices registered.</div>}
+        {devices.length === 0 && <div className="rounded-xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground col-span-3">No devices registered.</div>}
       </div>
     </div>
   );
@@ -662,23 +649,23 @@ function StudentsTab({ studentsOnCampus, logs, loading }: {
 
 // --- Devices Tab --------------------------------------------------------------
 
-function DevicesTab({ tablets, onRefresh }: { tablets: Tablet[]; onRefresh: () => void }) {
-  const online  = tablets.filter(t => t.status === "online").length;
-  const offline = tablets.filter(t => t.status === "offline").length;
+function DevicesTab({ devices, onRefresh }: { devices: Device[]; onRefresh: () => void }) {
+  const online  = devices.filter(t => t.status === "online").length;
+  const offline = devices.filter(t => t.status === "offline").length;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total Devices" value={tablets.length} icon={<Cpu className="h-5 w-5" />} />
+        <StatCard label="Total Devices" value={devices.length} icon={<Cpu className="h-5 w-5" />} />
         <StatCard label="Online" value={online} tone="success" icon={<Wifi className="h-5 w-5" />} />
         <StatCard label="Offline" value={offline} tone="destructive" icon={<WifiOff className="h-5 w-5" />} />
-        <StatCard label="In Maintenance" value={tablets.filter(t => t.status === "maintenance").length} tone="warning" />
+        <StatCard label="In Maintenance" value={devices.filter(t => t.status === "maintenance").length} tone="warning" />
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div>
-            <h3 className="font-display font-bold">Device / Tablet Status</h3>
+            <h3 className="font-display font-bold">Device / Device Status</h3>
             <p className="text-xs text-muted-foreground">Logs are pulled automatically every 5 minutes from online devices</p>
           </div>
           <button
@@ -690,9 +677,9 @@ function DevicesTab({ tablets, onRefresh }: { tablets: Tablet[]; onRefresh: () =
         </div>
 
         <div className="divide-y divide-border">
-          {tablets.length === 0 ? (
+          {devices.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-muted-foreground">No devices found. Register devices via the Super Admin panel.</div>
-          ) : tablets.map(t => (
+          ) : devices.map(t => (
             <div key={t.id} className="flex items-center justify-between px-5 py-4 hover:bg-muted/20">
               <div className="flex items-center gap-3">
                 <div className={cn(

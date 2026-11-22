@@ -16,13 +16,11 @@ export type AttendanceStatus = 'Present' | 'Late' | 'Absent' | 'Excused' | 'Not 
 export type SyncState = 'Synced' | 'Queued' | 'Failed';
 
 // Device types
-export type DeviceType = 'tablet' | 'fingerprint' | 'face' | 'rfid';
+export type DeviceType = 'kiosk' | 'web';
 
 // Device modes
 export type DeviceMode = 'gate' | 'classroom' | 'boarding';
 
-// Tablet status
-export type TabletStatus = 'online' | 'offline' | 'error' | 'maintenance';
 
 // Device Log entry from gate_logs table
 export interface DeviceLog {
@@ -38,7 +36,6 @@ export interface DeviceLog {
   section?: string;
   club?: string;
   deviceId: string;
-  tabletId?: string;
   status: string; // AttendanceStatus as string
   syncState: SyncState;
   sessionName?: string;
@@ -60,24 +57,8 @@ export interface Device {
   isConnected: boolean;
   lastConnectionAt?: string;
   lastSeenAt?: string;
-  tabletId?: string;
   serialNumber?: string;
   productName?: string;
-}
-
-// Tablet entity from tablets table
-export interface Tablet {
-  id: string;
-  name: string;
-  uuid?: string;
-  ip?: string;
-  port?: number;
-  url?: string;
-  status: TabletStatus;
-  lastHealthCheck?: string;
-  location?: string;
-  isActive?: boolean;
-  firmwareVersion?: string;
 }
 
 // Device status with connection info
@@ -133,11 +114,6 @@ export interface AttendanceStats {
   passwordCount: number;
   checkInCount: number;
   checkOutCount: number;
-}
-
-export interface TabletsResponse {
-  data: Tablet[];
-  meta?: PaginationMeta;
 }
 
 export interface DeviceStatusResponse {

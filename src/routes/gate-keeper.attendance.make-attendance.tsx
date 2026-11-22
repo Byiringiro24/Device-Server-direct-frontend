@@ -6,7 +6,6 @@ import { Avatar } from "@/components/ui-kit/Avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/api";
 import { studentSearchText, studentIdNumber } from "@/lib/studentIdentity";
-import { syncLiveAttendanceFromTablets, type SyncSummary } from "@/lib/liveAttendanceSync";
 import {
   type ApiRecord,
   type ApiSession,
@@ -44,7 +43,6 @@ function MakeAttendancePage() {
   const [sessions, setSessions] = useState<ApiSession[]>([]);
   const [records, setRecords] = useState<ApiRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncSummary, setSyncSummary] = useState<SyncSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [markingStudentId, setMarkingStudentId] = useState<string | null>(null);
   const [classFilter, setClassFilter] = useState("All");
@@ -77,8 +75,6 @@ function MakeAttendancePage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const sync = await syncLiveAttendanceFromTablets();
-      setSyncSummary(sync);
 
       const [classes, sections, studentList, sessionList, recordList] = await Promise.all([
         apiRequest<ClassRecord[]>("/classes?limit=200", { auth: "school" }),
@@ -286,11 +282,6 @@ function MakeAttendancePage() {
   return (
     <>
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-wrap gap-3 items-end mb-5">
-        {syncSummary && (
-          <div className="basis-full text-xs text-muted-foreground">
-            Live device sync: {syncSummary.pulled} tablet(s), {syncSummary.attendanceRecords} attendance record(s), {syncSummary.duplicates} duplicate(s)
-          </div>
-        )}
         <div>
           <label className="text-xs font-semibold text-muted-foreground">Class</label>
           <select

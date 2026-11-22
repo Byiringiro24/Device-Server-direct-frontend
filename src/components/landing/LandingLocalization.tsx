@@ -167,10 +167,10 @@ const copy: Record<string, Translations> = {
   "Privacy Policy": { sw: "Sera ya faragha", fr: "Politique de confidentialité", rw: "Politiki y'ubuzima bwite" },
   "Terms & Conditions": { sw: "Masharti", fr: "Conditions générales", rw: "Amabwiriza" },
   "Africa.": { sw: "Afrika.", fr: "Afrique.", rw: "Afurika." },
-  "Tablet-based gate and boarding attendance with offline sync.": {
-    sw: "Mahudhurio ya getini na bweni kupitia tablet yenye usawazishaji wa nje ya mtandao.",
-    fr: "Présence au portail et à l'internat sur tablette avec synchronisation hors ligne.",
-    rw: "Kwandika ubwitabire ku irembo no mu icumbi ukoresheje tablet ikorana n'itafite interineti.",
+  "Direct WAN biometric attendance at gates and boarding.": {
+    sw: "Mahudhurio ya getini na bweni kupitia vifaa vya kibayometriki bihuzwa moja kwa moja na seva.",
+    fr: "Présence au portail et à l'internat avec des terminaux biométriques connectés directement au serveur.",
+    rw: "Gukurikirana ubwitabire ukoresheje ibikoresho bya biometrike bihuzwa na seriveri mu buryo butaziguye.",
   },
   "Registration, classes, sections, and full academic records.": {
     sw: "Usajili, madarasa, vitengo na rekodi kamili za masomo.",
@@ -250,10 +250,10 @@ const copy: Record<string, Translations> = {
     rw: "Saba demo yihariye urebe uko Education Care System Africa yoroshya imikorere y'ikigo cyanyu.",
   },
   "Book a Demo": { sw: "Weka miadi ya onyesho", fr: "Réserver une démo", rw: "Saba demo" },
-  "Tablet-based biometric capture with kiosk mode, PIN unlock, and automatic offline sync.": {
-    sw: "Uchukuaji wa kibayometriki kwa tablet wenye hali ya kioski, PIN na usawazishaji wa nje ya mtandao.",
-    fr: "Capture biométrique sur tablette avec mode kiosque, déverrouillage par PIN et synchronisation hors ligne automatique.",
-    rw: "Kwandika biometrike ukoresheje tablet, uburyo bwa kiosk, PIN n'ihuzwa ryikora ridakoresha interineti.",
+  "Biometric attendance from terminals connected directly to the server.": {
+    sw: "Uthibitishaji wa biometriki kutoka kwenye vifaa vilivyounganishwa moja kwa moja na seva.",
+    fr: "Pointage biométrique par des terminaux connectés directement au serveur.",
+    rw: "Kwemeza biometrike hifashishijwe ibikoresho bihuzwa na seriveri mu buryo butaziguye.",
   },
   "Entry and exit logs, time tracking, and duplicate prevention.": {
     sw: "Kumbukumbu za kuingia na kutoka, ufuatiliaji wa muda na kuzuia kurudiwa.",
@@ -331,7 +331,7 @@ const copy: Record<string, Translations> = {
     fr: "Education Care System Africa est une plateforme SaaS moderne et évolutive de gestion scolaire, conçue pour accompagner les écoles dans leur transformation numérique, l'automatisation, la gestion des présences, des frais, des rapports et des opérations éducatives centralisées.",
     rw: "Education Care System Africa ni porogaramu igezweho ya SaaS yo gucunga amashuri, yagenewe gufasha amashuri mu mpinduka za digitale, gukoresha imirimo byikora, gucunga ubwitabire, amafaranga, raporo n'imikorere y'uburezi ihuriweho.",
   },
-  "By providing robust controls, role-based permission sets, and cross-device functionality (from administrative desktops to mobile tablets at school gates), we bridge the gap between parents, teachers, and system administrators.": {
+  "By providing robust controls, role-based permission sets, and cross-device functionality (from administrative desktops to biometric terminals at school gates), we connect parents, teachers, and system administrators.": {
     sw: "Kwa kutoa udhibiti imara, ruhusa kulingana na jukumu na matumizi kwenye vifaa tofauti, tunaunganisha wazazi, walimu na wasimamizi wa mfumo.",
     fr: "Grâce à des contrôles robustes, des autorisations par rôle et une utilisation multi-appareils, nous rapprochons les parents, les enseignants et les administrateurs.",
     rw: "Dutanga igenzura rikomeye, uburenganzira bushingiye ku nshingano n'imikoreshereze ku bikoresho bitandukanye, tugahuza ababyeyi, abarimu n'abayobozi ba sisitemu.",

@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Globe, School as SchoolIcon,
   BarChart3, Megaphone, Headphones, Settings, ClipboardList,
-  LogOut, X, Menu, Receipt, TrendingUp, Repeat, Cpu, TabletSmartphone, Mail,
+  LogOut, X, Menu, Receipt, TrendingUp, Repeat, Cpu, Mail,
   MessageSquareMore, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

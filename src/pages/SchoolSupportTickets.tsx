@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Headphones, MessageSquare, Plus, Send, TabletSmartphone, X } from "lucide-react";
+import { Headphones, MessageSquare, Plus, Send, Cpu, X } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GateKeeperLayout } from "@/components/layout/GateKeeperLayout";
@@ -126,7 +126,7 @@ export default function SchoolSupportTickets({ gateKeeper = false }: Props) {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             {gateKeeper
-              ? "Report device and tablet issues to your school administrator."
+              ? "Report biometric device issues to your school administrator."
               : "Manage school issues and escalate technical problems to the system administrator."}
           </p>
         </div>
@@ -164,10 +164,10 @@ export default function SchoolSupportTickets({ gateKeeper = false }: Props) {
         </div>
       ) : visibleTickets.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
-          <TabletSmartphone className="mx-auto h-8 w-8 text-muted-foreground" />
+          <Cpu className="mx-auto h-8 w-8 text-muted-foreground" />
           <h3 className="mt-3 font-semibold">No tickets yet</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create a ticket when you need help with a device, tablet, or another issue.
+            Create a ticket when you need help with a device or another issue.
           </p>
         </div>
       ) : (
@@ -208,7 +208,7 @@ export default function SchoolSupportTickets({ gateKeeper = false }: Props) {
                   className="mt-1"
                   value={form.subject}
                   onChange={(event) => setForm({ ...form, subject: event.target.value })}
-                  placeholder="e.g. Gate tablet cannot connect"
+                  placeholder="e.g. Gate biometric device is offline"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -217,7 +217,7 @@ export default function SchoolSupportTickets({ gateKeeper = false }: Props) {
                   value={form.category}
                   onChange={(value) => setForm({ ...form, category: value as TicketCategory })}
                   options={[
-                    ["technical", "Device / tablet issue"],
+                    ["technical", "Biometric device issue"],
                     ["feature_request", "Feature request"],
                     ["other", "Other"],
                   ]}
@@ -336,7 +336,7 @@ function TicketRow({
           <h3 className="mt-2 truncate font-semibold">{ticket.subject}</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {ticket.category === "technical"
-              ? "Device / tablet issue"
+              ? "Biometric device issue"
               : ticket.category.replace("_", " ")}{" "}
             · Updated {new Date(ticket.updated_at).toLocaleString()}
           </p>

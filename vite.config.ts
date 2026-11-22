@@ -13,7 +13,7 @@ export default defineConfig({
 		},
 	},
 	server: {
-		host: true,   // bind to 0.0.0.0 so LAN devices (tablets) can connect
+		host: true,   // bind to 0.0.0.0 for local network development
 		port: 5173,
 	},
 	preview: {

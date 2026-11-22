@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import DeviceManagementNew from "@/pages/school-admin/DeviceManagementNew";
+import DeviceManagement from "@/pages/school-admin/DeviceManagement";
 
 export const Route = createFileRoute("/devices-new")({
-  component: DeviceManagementNew,
+  component: DeviceManagement,
 });

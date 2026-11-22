@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Cpu, KeyRound, RefreshCw, Save, Search, School, Wifi, WifiOff } from "lucide-react";
+import { Check, Cpu, Fingerprint, KeyRound, RefreshCw, Save, Search, School, Users, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { SuperAdminBreadcrumbs } from "@/components/layout/SuperAdminBreadcrumbs";
@@ -21,6 +21,13 @@ type DirectDevice = {
   firmware_version: string | null;
   last_seen_at: string | null;
   is_online: boolean;
+  device_users_count: number;
+  biometric_templates_count: number;
+  device_capacity: number | null;
+  capacity_source: string;
+  last_logs_pull_at: string | null;
+  last_users_pull_at: string | null;
+  last_biometric_backup_at: string | null;
 };
 type Draft = { schoolId: string; assignedName: string };
 type CredentialStatus = { configured: boolean; source: "superadmin" | "environment" | "none" };
@@ -29,6 +36,8 @@ function DirectWanDevicesPage() {
   const [schools, setSchools] = useState<SchoolOption[]>([]);
   const [devices, setDevices] = useState<DirectDevice[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [capacityDrafts, setCapacityDrafts] = useState<Record<string, string>>({});
+  const [savingCapacity, setSavingCapacity] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +66,11 @@ function DirectWanDevicesPage() {
     if (deviceResult.status === "fulfilled") {
       const discovered = deviceResult.value ?? [];
       setDevices(discovered);
+      setCapacityDrafts(previous => {
+        const next = { ...previous };
+        for (const device of discovered) if (next[device.device_uid] === undefined) next[device.device_uid] = device.device_capacity?.toString() ?? "";
+        return next;
+      });
       setDrafts(previous => {
         const next = { ...previous };
         for (const device of discovered) {
@@ -148,18 +162,44 @@ function DirectWanDevicesPage() {
     }
   };
 
+  const saveDeviceCapacity = async (device: DirectDevice) => {
+    const raw = capacityDrafts[device.device_uid]?.trim() ?? "";
+    const capacity = raw ? Number(raw) : null;
+    if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 1_000_000)) {
+      toast.error("Capacity must be a positive whole number");
+      return;
+    }
+    setSavingCapacity(device.device_uid);
+    try {
+      await apiRequest(`/platform/hardware/direct-devices/${encodeURIComponent(device.device_uid)}/capacity`, {
+        method: "PATCH", auth: "platform", body: JSON.stringify({ device_capacity: capacity }),
+      });
+      toast.success(capacity === null ? "Automatic device capacity applied when reported" : "Device capacity saved");
+      await load(true);
+      setCapacityDrafts(current => ({ ...current, [device.device_uid]: capacity?.toString() ?? "" }));
+    } catch (error: any) {
+      toast.error(error?.message || "Could not save device capacity");
+    } finally {
+      setSavingCapacity(null);
+    }
+  };
+
   const onlineCount = devices.filter(device => device.is_online).length;
-  const unassignedCount = devices.filter(device => !device.school_id).length;
+  const offlineCount = devices.length - onlineCount;
+  const assignedCount = devices.filter(device => Boolean(device.school_id)).length;
+  const unassignedCount = devices.length - assignedCount;
 
   return <SuperAdminLayout
     title="Direct WAN Devices"
     subtitle="Discover FK terminals, set clear names, and assign them to schools"
     breadcrumbs={<SuperAdminBreadcrumbs items={[{ label: "Super Admin", to: "/super-admin" }, { label: "Direct WAN Devices" }]} />}
   >
-    <div className="mb-6 grid gap-3 sm:grid-cols-3">
-      <Metric label="Discovered devices" value={devices.length} icon={<Cpu className="h-4 w-4" />} />
-      <Metric label="Online now" value={onlineCount} icon={<Wifi className="h-4 w-4" />} tone="green" />
-      <Metric label="Awaiting school assignment" value={unassignedCount} icon={<School className="h-4 w-4" />} tone="amber" />
+    <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <Metric label="Registered devices" value={devices.length} icon={<Cpu className="h-4 w-4" />} />
+      <Metric label="Online devices" value={onlineCount} icon={<Wifi className="h-4 w-4" />} tone="green" />
+      <Metric label="Offline devices" value={offlineCount} icon={<WifiOff className="h-4 w-4" />} tone="amber" />
+      <Metric label="Assigned devices" value={assignedCount} icon={<School className="h-4 w-4" />} tone="green" />
+      <Metric label="Unassigned devices" value={unassignedCount} icon={<School className="h-4 w-4" />} tone="amber" />
     </div>
 
     <section className="mb-6 rounded-xl border border-border bg-card p-5">
@@ -215,7 +255,7 @@ function DirectWanDevicesPage() {
           {visibleDevices.map(device => {
             const draft = drafts[device.device_uid] ?? { schoolId: device.school_id ?? "", assignedName: device.assigned_name || device.device_name };
             const unchanged = draft.schoolId === (device.school_id ?? "") && draft.assignedName.trim() === device.assigned_name;
-            return <div key={device.device_uid} className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(240px,1.2fr)_minmax(220px,1fr)_minmax(220px,1fr)_auto] xl:items-center">
+            return <div key={device.device_uid} className="grid gap-4 px-5 py-5 xl:grid-cols-[minmax(220px,1.1fr)_minmax(210px,1fr)_minmax(220px,1fr)_minmax(220px,1fr)] xl:items-center">
               <div className="min-w-0">
                 <div className="flex items-center gap-2"><span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", device.is_online ? "bg-emerald-500" : "bg-slate-300")} /><p className="truncate font-semibold">{device.assigned_name || device.device_name}</p></div>
                 <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{device.device_uid}</p>
@@ -226,6 +266,18 @@ function DirectWanDevicesPage() {
                 <p className="mt-1 text-xs text-muted-foreground">Last contact: {device.last_seen_at ? new Date(device.last_seen_at).toLocaleString() : "Never seen"}</p>
                 <p className="mt-1 break-all text-xs text-muted-foreground">{device.firmware_version || "Firmware not reported"}{device.remote_address ? ` · ${device.remote_address}` : ""}</p>
                 <p className="mt-1 text-xs text-muted-foreground">School: {device.school?.name || "Unassigned"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Full log pull: {device.last_logs_pull_at ? new Date(device.last_logs_pull_at).toLocaleString() : "pending first pull"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Users/templates pull: {device.last_users_pull_at ? new Date(device.last_users_pull_at).toLocaleString() : "pending first pull"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Encrypted template backup: {device.last_biometric_backup_at ? new Date(device.last_biometric_backup_at).toLocaleString() : "waiting for first weekly sync"}</p>
+              </div>
+              <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
+                <p className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /><span>{device.device_users_count} stored users</span></p>
+                <p className="flex items-center gap-2"><Fingerprint className="h-4 w-4 text-muted-foreground" /><span>{device.biometric_templates_count} biometric templates</span></p>
+                {device.device_capacity ? <p className="text-xs text-muted-foreground">{Math.min(100, Math.round(device.device_users_count / device.device_capacity * 100))}% of {device.device_capacity} slots · {device.capacity_source === "device" ? "reported by device" : "set by Super Admin"}</p> : <p className="text-xs text-muted-foreground">Capacity not reported; set it below.</p>}
+                <div className="flex gap-2">
+                  <input type="number" min={1} max={1000000} value={capacityDrafts[device.device_uid] ?? ""} onChange={event => setCapacityDrafts(current => ({ ...current, [device.device_uid]: event.target.value }))} aria-label={`User capacity for ${device.device_uid}`} placeholder="Set capacity" className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm" />
+                  <button onClick={() => void saveDeviceCapacity(device)} disabled={savingCapacity === device.device_uid} className="h-9 rounded-lg border border-border px-3 text-xs font-semibold disabled:opacity-50">{savingCapacity === device.device_uid ? "Saving…" : "Save"}</button>
+                </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <input value={draft.assignedName} maxLength={100} onChange={event => setDrafts(current => ({ ...current, [device.device_uid]: { ...draft, assignedName: event.target.value } }))}

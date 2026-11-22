@@ -32,7 +32,7 @@ function GateKeeperDeviceStatusPage() {
     if (!silent) setLoading(true); else setRefreshing(true);
     try {
       // GET /devices returns devices with last_seen_at and is_online/is_connected
-      // populated from the DB (updated by bridge-sse job on every scan and
+      // populated from the DB (updated by the direct FK WAN feed on each scan and
       // pull-logs sweep). For real-time status we use the 5-minute last_seen_at window.
       const data = await apiRequest<any>(
         "/devices?limit=500&sort=last_seen_at&order=desc",
@@ -54,7 +54,7 @@ function GateKeeperDeviceStatusPage() {
   // Initial load
   useEffect(() => { void loadDevices(); }, []);
 
-  // Auto-refresh every 30 seconds — matches the bridge-sse last_seen_at update interval
+  // Auto-refresh every 30 seconds — matches the direct-device heartbeat interval
   useEffect(() => {
     const iv = setInterval(() => void loadDevices(true), 30_000);
     return () => clearInterval(iv);
