@@ -18,6 +18,7 @@ type Device = {
   name: string;
   location: string;
   maxUsers: number;
+  capacitySource?: string | null;
   lastSync: string;
   lastSyncStatus?: string | null;
   lastStatusMessage?: string | null;
@@ -51,6 +52,13 @@ type DeviceStatus = {
   ipAddress?: string;
   last_sync_at?: string | null;
   last_sync_status?: string | null;
+  capacity?: number | null;
+  capacitySource?: string | null;
+  assignedStudents?: number;
+  boardingStudents?: number;
+  dayStudents?: number;
+  assignedStudentIds?: string[];
+  physicalUsers?: number;
 };
 
 type Student = {
@@ -131,7 +139,8 @@ function DeviceStudentsPage() {
           id: device.id,
           name: device.name,
           location: device.location ?? "—",
-          maxUsers: 200,
+          maxUsers: typeof device.device_capacity === "number" ? device.device_capacity : 0,
+          capacitySource: device.capacity_source ?? null,
           lastSync: device.last_sync_at ? new Date(device.last_sync_at).toLocaleString() : "No sync yet",
           lastSyncStatus: device.last_sync_status ?? null,
           lastStatusMessage: device.last_status_message ?? null,
@@ -191,6 +200,13 @@ function DeviceStudentsPage() {
           ipAddress: status?.ipAddress,
           last_sync_at: result?.last_sync_at ?? result?.lastSyncAt ?? status?.last_sync_at ?? null,
           last_sync_status: result?.last_sync_status ?? status?.last_sync_status ?? null,
+          capacity: typeof result?.device_capacity === "number" ? result.device_capacity : typeof status?.device_capacity === "number" ? status.device_capacity : null,
+          capacitySource: result?.capacity_source ?? status?.capacity_source ?? null,
+          assignedStudents: typeof result?.assigned_students === "number" ? result.assigned_students : 0,
+          boardingStudents: typeof result?.boarding_students === "number" ? result.boarding_students : 0,
+          dayStudents: typeof result?.day_students === "number" ? result.day_students : 0,
+          assignedStudentIds: Array.isArray(result?.assigned_student_ids) ? result.assigned_student_ids.map(String) : [],
+          physicalUsers: Number(result?.device_users_count ?? status?.users ?? 0),
         });
       } catch {
         setDeviceStatus(null);
@@ -213,8 +229,8 @@ function DeviceStudentsPage() {
     [sections]
   );
   const assignedStudents = useMemo(
-    () => students.filter((student) => student.deviceSyncStatus === "synced"),
-    [students]
+    () => students.filter((student) => (deviceStatus?.assignedStudentIds ?? []).includes(student.id)),
+    [deviceStatus?.assignedStudentIds, students]
   );
   const assignedIds = useMemo(() => new Set(assignedStudents.map((student) => student.id)), [assignedStudents]);
 
@@ -252,7 +268,8 @@ function DeviceStudentsPage() {
   const boardersAssigned = assignedList.filter((student) => student.residency === "Boarding").length;
   const dayAssigned = assignedList.filter((student) => student.residency === "Day").length;
   const assignedCount = assignedList.length;
-  const capacity = device?.maxUsers ?? 200;
+  const capacity = deviceStatus?.capacity ?? device?.maxUsers ?? 0;
+  const physicalUserCount = deviceStatus?.physicalUsers ?? device?.deviceUsersCount ?? 0;
   const unassigned = Math.max(0, students.length - assignedList.length);
   const selectedDeviceLabel = device?.name ?? (deviceId ? "Selected device" : "No device selected");
   const selectedDeviceLocation = device?.location ?? "—";
@@ -261,8 +278,9 @@ function DeviceStudentsPage() {
     ? Boolean(deviceStatus.connected)
     : device ? isDeviceOnline(device as any) : false;
   const selectedDeviceStatusLabel = selectedDeviceIsOnline ? "Online" : "Offline";
-  const selectedDeviceSyncState = getDeviceSyncState(deviceStatus?.last_sync_status ?? device?.lastSyncStatus ?? null);
-  const selectedDeviceSyncMessage = deviceStatus?.message ?? device?.lastStatusMessage ?? "No push activity yet";
+  const syncState = getDeviceSyncState(deviceStatus?.last_sync_status ?? device?.lastSyncStatus ?? null);
+  const selectedDeviceSyncState = syncState && !["online", "offline"].includes(syncState.label.toLowerCase()) ? syncState : null;
+  const selectedDeviceSyncMessage = selectedDeviceIsOnline ? "Device is online" : "Device is offline";
   const hasSelectedDevice = Boolean(deviceId);
 
   const toggleSelect = (id: string) => {
@@ -309,7 +327,8 @@ function DeviceStudentsPage() {
         id: device.id,
         name: device.name,
         location: device.location ?? "—",
-        maxUsers: 200,
+        maxUsers: typeof device.device_capacity === "number" ? device.device_capacity : 0,
+        capacitySource: device.capacity_source ?? null,
         lastSync: device.last_sync_at ? new Date(device.last_sync_at).toLocaleString() : "No sync yet",
         lastSyncStatus: device.last_sync_status ?? null,
         lastStatusMessage: device.last_status_message ?? null,
@@ -363,6 +382,13 @@ function DeviceStudentsPage() {
       ipAddress: status?.ipAddress,
       last_sync_at: result?.last_sync_at ?? result?.lastSyncAt ?? status?.last_sync_at ?? null,
       last_sync_status: result?.last_sync_status ?? status?.last_sync_status ?? null,
+      capacity: typeof result?.device_capacity === "number" ? result.device_capacity : typeof status?.device_capacity === "number" ? status.device_capacity : null,
+      capacitySource: result?.capacity_source ?? status?.capacity_source ?? null,
+      assignedStudents: typeof result?.assigned_students === "number" ? result.assigned_students : 0,
+      boardingStudents: typeof result?.boarding_students === "number" ? result.boarding_students : 0,
+      dayStudents: typeof result?.day_students === "number" ? result.day_students : 0,
+      assignedStudentIds: Array.isArray(result?.assigned_student_ids) ? result.assigned_student_ids.map(String) : [],
+      physicalUsers: Number(result?.device_users_count ?? status?.users ?? 0),
     });
   };
 
@@ -814,13 +840,12 @@ function DeviceStudentsPage() {
               )}            </div>
             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <InfoItem label="Assigned" value={String(assignedCount)} />
-              <InfoItem label="Capacity" value={`${assignedCount}/${capacity}`} />
+              <InfoItem label="Capacity" value={capacity > 0 ? `${physicalUserCount}/${capacity}` : `${physicalUserCount} / Not set`} />
               <InfoItem label="Boarding" value={String(boardersAssigned)} />
               <InfoItem label="Day" value={String(dayAssigned)} />
             </div>
             <div className="mt-4 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
-              {selectedDeviceIsOnline ? "Device online" : "Device offline"}
-              {deviceStatus?.message || device?.lastStatusMessage ? ` - ${deviceStatus?.message ?? device?.lastStatusMessage}` : ""}
+              {selectedDeviceIsOnline ? "Device is online" : "Device is offline"}
             </div>
             {selectedDeviceSyncState && (
               <div className="mt-3 rounded-lg px-3 py-2 text-xs">

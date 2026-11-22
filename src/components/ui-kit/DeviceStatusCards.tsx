@@ -98,7 +98,7 @@ export function DeviceStatusCards({ devices }: { devices: DeviceRecord[] }) {
         label="Offline Devices"
         value={offlineDevices.length}
         icon={<WifiOff className="h-5 w-5" />}
-        trend={offlineDevices.length > 0 ? "Check the device WAN connection" : "All devices reachable"}
+        trend={offlineDevices.length > 0 ? "Check the device connection" : "All devices reachable"}
         tone={offlineDevices.length > 0 ? "destructive" : "primary"}
       />
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm min-w-0">

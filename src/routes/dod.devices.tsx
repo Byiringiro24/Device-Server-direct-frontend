@@ -176,7 +176,7 @@ function DodDevicesPage() {
       await deviceLocationApi.pushGroup(deviceId, group);
       toast.success(`Group ${group} pushed to device`);
     } catch (e: any) {
-      toast.error(e?.message ?? "Push failed — check the device WAN connection");
+      toast.error(e?.message ?? "Push failed — check that the device is online");
     } finally { setPushing(null); }
   };
 
@@ -247,7 +247,7 @@ function DodDevicesPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Direct FK device: {d.device_uid}
+                      {d.location_label || d.location_scope?.replace(/_/g, " ") || "Assigned device"}
                       {d.dormitory ? ` · Dorm: ${d.dormitory.name}` : ""}
                     </p>
                     {d.last_status_message && (

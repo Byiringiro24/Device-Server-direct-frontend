@@ -120,7 +120,7 @@ function GateKeeperDeviceStatusPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  {["Name", "UID", "Location", "Mode", "Status", "Last Contact", "Sync"].map((h) => (
+                  {["Name", "Location", "Mode", "Status", "Last Contact", "Sync"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -136,7 +136,6 @@ function GateKeeperDeviceStatusPage() {
                           {device.name}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{device.device_uid}</td>
                       <td className="px-4 py-3">{device.location ?? "—"}</td>
                       <td className="px-4 py-3 capitalize">{device.mode ?? "—"}</td>
                       <td className="px-4 py-3">
