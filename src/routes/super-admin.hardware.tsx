@@ -33,6 +33,7 @@ function DirectWanDevicesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>({ configured: false, source: "none" });
   const [credentialInput, setCredentialInput] = useState("");
@@ -127,6 +128,26 @@ function DirectWanDevicesPage() {
     }
   };
 
+  const saveDeviceName = async (device: DirectDevice) => {
+    const assignedName = drafts[device.device_uid]?.assignedName.trim();
+    if (!assignedName) { toast.error("Enter a display name for this device"); return; }
+    if (assignedName === device.assigned_name) return;
+    setSavingName(device.device_uid);
+    try {
+      await apiRequest(`/platform/hardware/direct-devices/${encodeURIComponent(device.device_uid)}/name`, {
+        method: "PATCH",
+        auth: "platform",
+        body: JSON.stringify({ assigned_name: assignedName }),
+      });
+      toast.success("Device name saved");
+      await load(true);
+    } catch (error: any) {
+      toast.error(error?.message || "Could not save device name");
+    } finally {
+      setSavingName(null);
+    }
+  };
+
   const onlineCount = devices.filter(device => device.is_online).length;
   const unassignedCount = devices.filter(device => !device.school_id).length;
 
@@ -149,7 +170,7 @@ function DirectWanDevicesPage() {
           <p className="mt-1 text-sm text-muted-foreground">Set the bearer token used by this backend to call the direct device server. The secret is encrypted in the database and never sent back to the browser.</p>
           <p className="mt-2 text-xs font-medium text-muted-foreground">
             {credentialStatus.configured
-              ? credentialStatus.source === "superadmin" ? "A Super Admin managed token is active." : "A server environment token is active."
+              ? credentialStatus.source === "superadmin" ? "A Super Admin managed token is active." : "A server environment token is active." 
               : "No token is configured; this works only if the device server allows trusted localhost access without authentication."}
           </p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -209,6 +230,10 @@ function DirectWanDevicesPage() {
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
                 <input value={draft.assignedName} maxLength={100} onChange={event => setDrafts(current => ({ ...current, [device.device_uid]: { ...draft, assignedName: event.target.value } }))}
                   aria-label={`Ecareafrica name for ${device.device_uid}`} placeholder="Distinct device name" className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                <button onClick={() => void saveDeviceName(device)} disabled={savingName === device.device_uid || draft.assignedName.trim() === device.assigned_name || !draft.assignedName.trim()}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border px-3 text-sm font-semibold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45">
+                  {savingName === device.device_uid ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Save name
+                </button>
                 <select value={draft.schoolId} onChange={event => setDrafts(current => ({ ...current, [device.device_uid]: { ...draft, schoolId: event.target.value } }))}
                   aria-label={`School for ${device.device_uid}`} className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="">Choose a school</option>{schools.map(school => <option key={school.id} value={school.id}>{school.name}</option>)}
