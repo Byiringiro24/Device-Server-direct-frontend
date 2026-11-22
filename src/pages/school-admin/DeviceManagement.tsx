@@ -26,6 +26,7 @@ export default function DeviceManagement() {
   const [pullingLogs, setPullingLogs] = useState(false);
   const [checking, setChecking] = useState(false);
   const [syncingTime, setSyncingTime] = useState(false);
+  const [matchingExactIds, setMatchingExactIds] = useState(false);
   const [danger, setDanger] = useState<DangerAction | null>(null);
   const [seconds, setSeconds] = useState(5);
   const [dangerBusy, setDangerBusy] = useState(false);
@@ -68,8 +69,9 @@ export default function DeviceManagement() {
   useEffect(() => {
     void loadLogs(selectedId); void loadUsers(selectedId);
     if (!selectedId) return;
-    const timer = window.setInterval(() => { void loadLogs(selectedId); void loadUsers(selectedId); }, 15000);
-    return () => window.clearInterval(timer);
+    const logsTimer = window.setInterval(() => { void loadLogs(selectedId); }, 5000);
+    const usersTimer = window.setInterval(() => { void loadUsers(selectedId); }, 15000);
+    return () => { window.clearInterval(logsTimer); window.clearInterval(usersTimer); };
   }, [selectedId, loadLogs, loadUsers]);
 
   useEffect(() => {
@@ -154,6 +156,20 @@ export default function DeviceManagement() {
     } catch (error: any) { toast.error(error?.message ?? "Could not match the device user"); }
   };
 
+  const matchExactIds = async () => {
+    if (!selectedId) return;
+    setMatchingExactIds(true);
+    try {
+      const result = await apiRequest<{ matched: number; alreadyMatched: number; needsReview: number }>(
+        "/devices/" + encodeURIComponent(selectedId) + "/users/match-exact",
+        { method: "POST", auth: "school" },
+      );
+      toast.success(`ID matching complete: ${result.matched} linked, ${result.alreadyMatched} already linked, ${result.needsReview} need review. Student numbers and biometric data were unchanged.`);
+      await loadUsers(selectedId);
+    } catch (error: any) { toast.error(error?.message ?? "Could not match exact device IDs"); }
+    finally { setMatchingExactIds(false); }
+  };
+
   const runDangerAction = async () => {
     if (!danger || !selectedId || seconds > 0) return;
     setDangerBusy(true);
@@ -183,6 +199,21 @@ export default function DeviceManagement() {
           <RefreshCw className={"h-4 w-4 " + (loading ? "animate-spin" : "")} /> Refresh
         </button>
       </div>
+
+      <section className="rounded-xl border border-primary/20 bg-card p-4 shadow-sm">
+        <label htmlFor="managed-device-select" className="block text-sm font-semibold">Select a device to manage</label>
+        <p className="mt-1 text-xs text-muted-foreground">All user, biometric, and attendance actions below apply only to the selected device.</p>
+        <select
+          id="managed-device-select"
+          value={selectedId}
+          onChange={event => { setSelectedId(event.target.value); setSelectedUsers([]); }}
+          disabled={devices.length === 0}
+          className="mt-3 h-12 w-full max-w-xl rounded-lg border border-input bg-background px-3 text-base font-medium shadow-sm outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option value="">{devices.length ? "Select a device" : "No school devices available"}</option>
+          {devices.map(device => <option key={device.id} value={device.id}>{device.name} · {device.is_online ? "Online" : "Offline"}</option>)}
+        </select>
+      </section>
 
       <section className="rounded-xl border bg-card p-4">
         <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">School devices ({devices.length})</h2>{selected && <span className="text-xs text-muted-foreground">Updated automatically</span>}</div>
@@ -229,7 +260,7 @@ export default function DeviceManagement() {
           {users.length ? <div className="max-h-80 overflow-auto rounded-lg border"><table className="w-full text-left text-sm"><thead className="sticky top-0 bg-card"><tr className="border-b text-muted-foreground"><th className="px-3 py-2">Select</th><th>Device ID</th><th>Name on device</th><th>Matched student</th><th>Biometric methods</th></tr></thead><tbody>{users.map(user => {
             return <tr className="border-b last:border-0" key={user.userId}><td className="px-3 py-2"><input aria-label={`Select ${user.userId}`} type="checkbox" checked={selectedUsers.includes(user.userId)} onChange={event => setSelectedUsers(current => event.target.checked ? [...new Set([...current, user.userId])] : current.filter(id => id !== user.userId))} /></td><td className="font-mono">{user.userId}</td><td>{user.name || "—"}</td><td>{user.studentName ? `${user.studentName}${user.studentNumber ? ` (${user.studentNumber})` : ""}` : user.matchStatus === "ambiguous" ? "Needs review" : "Not linked"}</td><td>{user.biometricMethods?.length ? user.biometricMethods.join(", ") : "None reported"}</td></tr>;
           })}</tbody></table></div> : <p className="py-4 text-sm text-muted-foreground">No users have been pulled from this device yet.</p>}
-          {users.some(user => user.matchStatus !== "matched") && <div className="mt-4 rounded-lg border p-3"><h4 className="text-sm font-semibold">Match existing device users</h4><p className="mt-1 text-xs text-muted-foreground">Link an existing device ID to a student record. This does not push, delete, or enroll biometrics.</p><div className="mt-3 space-y-2">{users.filter(user => user.matchStatus !== "matched").map(user => <div key={user.userId} className="flex flex-wrap items-center gap-2"><span className="min-w-28 text-sm">Device ID {user.userId}</span><select value={matchSelections[user.userId] ?? ""} onChange={event => setMatchSelections(current => ({ ...current, [user.userId]: event.target.value }))} className="min-w-60 flex-1 rounded-md border bg-background px-3 py-2 text-sm"><option value="">Select a student with no device ID</option>{candidates.map(student => <option key={student.id} value={student.id}>{student.first_name} {student.last_name} · {student.student_id_number}</option>)}</select><button type="button" disabled={!matchSelections[user.userId]} onClick={() => void matchUser(user.userId)} className="rounded-md border px-3 py-2 text-xs font-semibold disabled:opacity-50">Match ID</button></div>)}</div></div>}
+          {users.some(user => user.matchStatus !== "matched") && <div className="mt-4 rounded-lg border p-3"><div className="flex flex-wrap items-center justify-between gap-2"><div><h4 className="text-sm font-semibold">Match existing device users</h4><p className="mt-1 text-xs text-muted-foreground">Exact matching links a device ID only when it uniquely equals a student number. Student numbers and device biometrics are never changed.</p></div><button type="button" disabled={matchingExactIds} onClick={() => void matchExactIds()} className="rounded-md border px-3 py-2 text-xs font-semibold disabled:opacity-50">{matchingExactIds ? "Matching…" : "Match exact IDs"}</button></div><div className="mt-3 space-y-2">{users.filter(user => user.matchStatus !== "matched").map(user => <div key={user.userId} className="flex flex-wrap items-center gap-2"><span className="min-w-28 text-sm">Device ID {user.userId}</span><select value={matchSelections[user.userId] ?? ""} onChange={event => setMatchSelections(current => ({ ...current, [user.userId]: event.target.value }))} className="min-w-60 flex-1 rounded-md border bg-background px-3 py-2 text-sm"><option value="">Select a student with no device ID</option>{candidates.map(student => <option key={student.id} value={student.id}>{student.first_name} {student.last_name} · {student.student_id_number}</option>)}</select><button type="button" disabled={!matchSelections[user.userId]} onClick={() => void matchUser(user.userId)} className="rounded-md border px-3 py-2 text-xs font-semibold disabled:opacity-50">Match ID</button></div>)}</div></div>}
         </section>
 
         <section className="rounded-xl border bg-card p-4">
