@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Cpu, RefreshCw, Search, School, Wifi, WifiOff } from "lucide-react";
+import { Check, Cpu, KeyRound, RefreshCw, Save, Search, School, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { SuperAdminLayout } from "@/components/layout/SuperAdminLayout";
 import { SuperAdminBreadcrumbs } from "@/components/layout/SuperAdminBreadcrumbs";
@@ -23,6 +23,7 @@ type DirectDevice = {
   is_online: boolean;
 };
 type Draft = { schoolId: string; assignedName: string };
+type CredentialStatus = { configured: boolean; source: "superadmin" | "environment" | "none" };
 
 function DirectWanDevicesPage() {
   const [schools, setSchools] = useState<SchoolOption[]>([]);
@@ -33,20 +34,31 @@ function DirectWanDevicesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>({ configured: false, source: "none" });
+  const [credentialInput, setCredentialInput] = useState("");
+  const [savingCredential, setSavingCredential] = useState(false);
 
   const load = useCallback(async (quiet = false) => {
     quiet ? setRefreshing(true) : setLoading(true);
     setLoadError("");
-    try {
-      const [schoolResult, deviceResult] = await Promise.all([
+    const [schoolResult, deviceResult, credentialResult] = await Promise.allSettled([
         apiRequest<{ data: SchoolOption[] }>("/platform/schools?limit=500", { auth: "platform", returnMeta: true }),
         apiRequest<DirectDevice[]>("/platform/hardware/direct-devices", { auth: "platform" }),
-      ]);
-      setSchools(schoolResult.data ?? []);
-      setDevices(deviceResult ?? []);
+        apiRequest<CredentialStatus>("/platform/hardware/direct-server-credentials", { auth: "platform" }),
+    ]);
+
+    if (schoolResult.status === "fulfilled") setSchools(schoolResult.value.data ?? []);
+    else if (!quiet) setLoadError((schoolResult.reason as any)?.message || "Could not load schools");
+
+    if (credentialResult.status === "fulfilled") setCredentialStatus(credentialResult.value);
+    else if (!quiet) setLoadError(current => current || (credentialResult.reason as any)?.message || "Could not load credential settings");
+
+    if (deviceResult.status === "fulfilled") {
+      const discovered = deviceResult.value ?? [];
+      setDevices(discovered);
       setDrafts(previous => {
         const next = { ...previous };
-        for (const device of deviceResult ?? []) {
+        for (const device of discovered) {
           if (!next[device.device_uid]) {
             next[device.device_uid] = {
               schoolId: device.school_id ?? "",
@@ -56,15 +68,31 @@ function DirectWanDevicesPage() {
         }
         return next;
       });
-    } catch (error: any) {
-      const message = error?.message || "Could not load direct WAN devices";
-      setLoadError(message);
+    } else {
+      const message = (deviceResult.reason as any)?.message || "Could not reach the FK Device-Server";
+      setLoadError(current => current || message);
       if (quiet) toast.error(message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
     }
+
+    setLoading(false);
+    setRefreshing(false);
   }, []);
+
+  const saveCredential = async (token: string) => {
+    setSavingCredential(true);
+    try {
+      const result = await apiRequest<CredentialStatus>("/platform/hardware/direct-server-credentials", {
+        method: "PATCH", auth: "platform", body: JSON.stringify({ token }),
+      });
+      setCredentialStatus(result);
+      setCredentialInput("");
+      toast.success(token ? "FK Device-Server credential saved securely" : "Super Admin credential removed");
+    } catch (error: any) {
+      toast.error(error?.message || "Could not update FK Device-Server credential");
+    } finally {
+      setSavingCredential(false);
+    }
+  };
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -112,6 +140,32 @@ function DirectWanDevicesPage() {
       <Metric label="Online now" value={onlineCount} icon={<Wifi className="h-4 w-4" />} tone="green" />
       <Metric label="Awaiting school assignment" value={unassignedCount} icon={<School className="h-4 w-4" />} tone="amber" />
     </div>
+
+    <section className="mb-6 rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700"><KeyRound className="h-5 w-5" /></div>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-base font-bold">FK Device-Server authorization</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Set the bearer token used by this backend to call the direct device server. The secret is encrypted in the database and never sent back to the browser.</p>
+          <p className="mt-2 text-xs font-medium text-muted-foreground">
+            {credentialStatus.configured
+              ? credentialStatus.source === "superadmin" ? "A Super Admin managed token is active." : "A server environment token is active."
+              : "No token is configured; this works only if the device server allows trusted localhost access without authentication."}
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input type="password" autoComplete="new-password" value={credentialInput} onChange={event => setCredentialInput(event.target.value)}
+              aria-label="FK Device-Server bearer token" placeholder="Enter a new bearer token" className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+            <button type="button" onClick={() => void saveCredential(credentialInput)} disabled={savingCredential || !credentialInput.trim()}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+              <Save className="h-4 w-4" />{savingCredential ? "Saving…" : "Save token"}
+            </button>
+            {credentialStatus.source === "superadmin" && <button type="button" onClick={() => void saveCredential("")} disabled={savingCredential}
+              className="h-10 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted disabled:opacity-50">Remove</button>}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">JWT signing secrets remain server-managed in `.env`; they are not exposed or editable here.</p>
+        </div>
+      </div>
+    </section>
 
     <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
       <label className="relative block w-full sm:max-w-sm">
